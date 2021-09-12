@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "eigen3/Eigen/Core"
+#include <opencv2/opencv.hpp>
 
 #include "rgbd_fusion/RgbdFusion.h"
 
@@ -13,10 +14,13 @@ constexpr int DATASET_HIEROGLYPH = 1;
 constexpr int DATASET_FREIBURG = 2;
 
 int main(){
-    Eigen::Matrix4f colorIntrinsics;
-    Eigen::Matrix4f depthIntrinsics;
+    Eigen::Matrix3f colorIntrinsics;
+    Eigen::Matrix3f depthIntrinsics;
 
-    int dataset = DATASET_LION;
+    std::string colorPath;
+    std::string depthPath;
+
+    int dataset = DATASET_FREIBURG;
 
 
     switch (dataset) {
@@ -26,6 +30,8 @@ int main(){
                     0.0f, 525.0f, 239.5f,
                     0.0f, 0.0f, 1.0f;
             depthIntrinsics = colorIntrinsics;
+            colorPath = "../../datasets/rgbd_dataset_freiburg1_xyz/rgb/1305031102.175304.png";
+            depthPath = "../../datasets/rgbd_dataset_freiburg1_xyz/depth/1305031102.160407.png";
             break;
             // https://vision.in.tum.de/data/datasets/intrinsic3d
         case DATASET_HIEROGLYPH:
@@ -43,6 +49,12 @@ int main(){
 
 
     RgbdFusion rgbd(colorIntrinsics, depthIntrinsics);
+
+    auto rgbImage = cv::imread(colorPath);
+    auto depthImage = cv::imread(depthPath,cv::IMREAD_ANYDEPTH | cv::IMREAD_GRAYSCALE);
+    depthImage.convertTo(depthImage, CV_32FC1); // or CV_32F works (too)
+
+    rgbd.refine(rgbImage, depthImage);
 
     return 0;
 }
