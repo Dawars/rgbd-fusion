@@ -3,6 +3,7 @@
 //
 
 #include <Eigen/Core>
+
 #include <opencv2/opencv.hpp>
 #include "rgbd_fusion/RgbdFusion.h"
 
@@ -30,23 +31,28 @@ cv::Mat RgbdFusion::smoothDepth(cv::Mat image) {
     return smoothDepth;
 }
 
-cv::Mat RgbdFusion::calculateNormals(cv::Mat depthImage) {
-    cv::Mat zx;
-    cv::Mat zy;
-    cv::Sobel(depthImage, zx, -1, 1, 0);
-    cv::Sobel(depthImage, zy, -1, 0, 1);
+cv::Mat RgbdFusion::calculateNormals(cv::Mat depth) {
 
-    cv::imwrite("zx.png", zx);
-    cv::imwrite("zy.png", zy);
+    cv::Mat normals(depth.size(), CV_32FC3);
 
-    // todo handedness
-    std::vector<cv::Mat> channels {cv::Mat(depthImage.rows, depthImage.cols, zx.type(), 1), zy, zx}; // todo BGR
-    cv::Mat normal;
-    cv::merge(channels, normal);
-    cv::imwrite("normal.png", normal);
-    cv::Mat denom;
-    cv::sqrt(normal, denom); // fixme this is not what we want
-    normal = normal / denom;
+    for(int y = 0; y < depth.rows; ++y) {
+        for(int x = 0; x < depth.cols; ++x) {
+            double dzdy = (depth.at<float>(std::min(depth.rows, y + 1), x) - depth.at<float>(std::max(0, y - 1), x)) / 2.0;
+            double dzdx = (depth.at<float>(y, std::min(depth.cols, x + 1)) - depth.at<float>(y, std::max(depth.cols, x - 1))) / 2.0;
 
-    return normal;
+            cv::Vec3d d(dzdx, dzdy, -1.0f);
+            cv::Vec3d n = normalize(d);
+
+            normals.at<cv::Vec3f>(y, x) = n;
+        }
+    }
+
+    cv::Mat normalDisp;
+    normals.convertTo(normalDisp, CV_8UC3, 127, 127);
+    cv::cvtColor(normalDisp, normalDisp, cv::COLOR_BGR2RGB);
+    std::cout << normalDisp << std::endl;
+
+    cv::imwrite("normal.png", normalDisp);
+
+    return normals;
 }
