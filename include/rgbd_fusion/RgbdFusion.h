@@ -11,7 +11,8 @@ public:
 
     void refine(cv::Mat rgbImage, cv::Mat depthImage);
 
-    cv::Mat smoothDepth(cv::Mat image);
+    cv::Mat bilateralSmoothing(cv::Mat image);
+    cv::Mat gaussianSmoothing(cv::Mat image);
 
     cv::Mat calculateNormals(cv::Mat depthImage);
 };
